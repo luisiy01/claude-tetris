@@ -1,187 +1,57 @@
-name: Claude Issue Triage
+name: Claude Issue Formatter
 
 on:
   issues:
     types: [opened, edited]
 
 jobs:
-  triage:
-    # Prevent bot loops: don't run if sender is a bot or app
-    if: >
-      github.event.sender.type != 'Bot' &&
-      !endsWith(github.event.sender.login, '[bot]') &&
-      github.event.sender.login != 'github-actions'
-
+  format-issue:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
       id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Ensure triage labels exist
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Type labels
-          gh label create "bug" --color "d73a4a" --description "Algo no funciona correctamente" --force
-          gh label create "enhancement" --color "a2eeef" --description "Nueva funcionalidad o mejora" --force
-          gh label create "question" --color "d876e3" --description "Pregunta o solicitud de informacion" --force
-          gh label create "documentation" --color "0075ca" --description "Mejoras a la documentacion" --force
-          gh label create "good first issue" --color "7057ff" --description "Buen punto de entrada para nuevos contribuidores" --force
-          # Priority labels
-          gh label create "priority: high" --color "b60205" --description "Alta prioridad" --force
-          gh label create "priority: medium" --color "fbca04" --description "Prioridad media" --force
-          gh label create "priority: low" --color "0e8a16" --description "Prioridad baja" --force
-          # Complexity labels
-          gh label create "complexity: simple" --color "c5def5" --description "Cambio sencillo" --force
-          gh label create "complexity: moderate" --color "bfd4f2" --description "Esfuerzo moderado" --force
-          gh label create "complexity: complex" --color "1d76db" --description "Cambio complejo" --force
-          # Area labels
-          gh label create "area: game-logic" --color "e99695" --description "Mecanicas del juego en game.js" --force
-          gh label create "area: ui" --color "f9d0c4" --description "Interfaz de usuario y HTML" --force
-          gh label create "area: styling" --color "fef2c0" --description "Apariencia visual y CSS" --force
-          gh label create "area: performance" --color "d4c5f9" --description "Rendimiento y optimizacion" --force
-
-      - name: Remove previous triage comment and labels
-        if: github.event.action == 'edited'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ISSUE=${{ github.event.issue.number }}
-
-          # Delete previous triage comments (identified by HTML marker)
-          COMMENT_IDS=$(gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments" \
-            --jq '[.[] | select(.body | contains("<!-- claude-issue-triage -->")) | .id] | .[]')
-          for CID in $COMMENT_IDS; do
-            gh api "repos/${{ github.repository }}/issues/${ISSUE}/comments/${CID}" -X DELETE
-            echo "Deleted previous triage comment: $CID"
-          done
-
-          # Remove all triage-managed labels so Claude can re-classify
-          LABELS=("bug" "enhancement" "question" "documentation" "good first issue"
-                  "priority: high" "priority: medium" "priority: low"
-                  "complexity: simple" "complexity: moderate" "complexity: complex"
-                  "area: game-logic" "area: ui" "area: styling" "area: performance")
-          for LABEL in "${LABELS[@]}"; do
-            gh issue edit "$ISSUE" --remove-label "$LABEL" 2>/dev/null || true
-          done
-
-      - name: Run Claude Issue Triage
-        id: claude-triage
+      - name: Format issue with Claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            issues: write
+          claude_args: "--allowedTools Bash(gh issue *)"
           prompt: |
-            Eres un asistente de triaje automatico para un repositorio de un juego de Tetris implementado en HTML5, JavaScript vanilla y CSS. Tu tarea es analizar el issue #${{ github.event.issue.number }} y proporcionar un diagnostico completo en espanol.
+            You are a GitHub issue formatter for a Tetris game project (vanilla JS/HTML/CSS, no dependencies).
 
-            ## Contexto del Proyecto
-            Este es un juego de Tetris clasico con tres archivos principales:
-            - `game.js` (~300 lineas): Toda la logica del juego - piezas, colisiones, rotacion con wall kicks, puntuacion, niveles, ghost piece, game loop con requestAnimationFrame
-            - `index.html`: Estructura HTML con dos canvas (tablero y preview), panel lateral con score, lines, level, overlay para pausa y game over
-            - `style.css`: Estilos dark theme con flexbox, backdrop-filter, box-shadow
+            An issue was just ${{ github.event.action }} with the following details:
+            - Issue number: #${{ github.event.issue.number }}
+            - Title: ${{ github.event.issue.title }}
+            - Body: ${{ github.event.issue.body }}
+            - Author: ${{ github.event.issue.user.login }}
 
-            ## Instrucciones
+            Your tasks:
+            1. **Add labels** based on the issue content. Use only these labels:
+               - `bug` — something is broken or behaving incorrectly
+               - `enhancement` — new feature or improvement request
+               - `question` — asking for help or clarification
+               - `documentation` — docs need updating
+               - `good first issue` — simple, beginner-friendly task
+               - `duplicate` — if it seems like a known/repeated problem
 
-            ### Paso 1: Comprender el Issue
-            Lee el titulo y cuerpo del issue. Si el issue esta en otro idioma, comprende su contenido pero responde SIEMPRE en espanol.
+            2. **Post a comment** on the issue that includes:
+               - A brief, friendly summary of what the issue is about (1-2 sentences)
+               - A "Formatted Report" section with:
+                 - **Type**: Bug / Feature Request / Question / Other
+                 - **Summary**: one clear sentence describing the problem or request
+                 - **Steps to reproduce** (for bugs): list them if not provided, ask the user to provide them if it's a bug
+                 - **Expected behavior** (for bugs): what should happen
+                 - **Suggested labels**: the labels you applied and why
+               - A closing note thanking the contributor
 
-            ### Paso 2: Examinar el Codigo Relevante
-            Lee los archivos del proyecto que sean relevantes para el issue. Las funciones clave en game.js son:
-            - `createBoard()`, `randomPiece()` - inicializacion
-            - `collide()`, `rotateCW()`, `tryRotate()` - colisiones y rotacion
-            - `merge()`, `clearLines()` - fijacion de piezas y limpieza de lineas
-            - `ghostY()`, `hardDrop()`, `softDrop()` - mecanicas de caida
-            - `lockPiece()`, `spawn()` - ciclo de piezas
-            - `draw()`, `drawBlock()`, `drawGrid()`, `drawNext()` - renderizado
-            - `loop()`, `init()` - game loop e inicializacion
-            - Event listener de `keydown` - controles del jugador
+            Use the `gh` CLI to apply labels and post the comment. Example commands:
+              gh issue edit ${{ github.event.issue.number }} --add-label "bug" --repo ${{ github.repository }}
+              gh issue comment ${{ github.event.issue.number }} --body "..." --repo ${{ github.repository }}
 
-            ### Paso 3: Clasificar y Etiquetar
-            Usa comandos `gh` para anadir las etiquetas apropiadas al issue. Ejecuta:
-
-            ```bash
-            gh issue edit ${{ github.event.issue.number }} --add-label "etiqueta1" --add-label "etiqueta2"
-            ```
-
-            Selecciona etiquetas de estas categorias:
-
-            **Tipo** (elige una principal):
-            - `bug` - Algo no funciona correctamente
-            - `enhancement` - Nueva funcionalidad o mejora solicitada
-            - `question` - Pregunta sobre el proyecto
-            - `documentation` - Mejoras a documentacion o README
-            - `good first issue` - Agregala ademas del tipo si el cambio es accesible para principiantes
-
-            **Prioridad** (elige una):
-            - `priority: high` - Crash del juego, funcionalidad rota, bloquea el uso
-            - `priority: medium` - Bug visual, mejora importante, afecta la experiencia
-            - `priority: low` - Cosmetico, nice-to-have, no afecta jugabilidad
-
-            **Complejidad** (elige una):
-            - `complexity: simple` - Pocas lineas, cambio localizado en una funcion
-            - `complexity: moderate` - Requiere entender varias funciones o archivos
-            - `complexity: complex` - Requiere nueva funcionalidad, cambios arquitecturales, o tocar muchas partes
-
-            **Area** (elige una o mas):
-            - `area: game-logic` - Mecanicas en game.js (piezas, colisiones, puntuacion, niveles, velocidad)
-            - `area: ui` - Estructura HTML, canvas, panel lateral, overlay
-            - `area: styling` - CSS, colores, layout, responsividad
-            - `area: performance` - Optimizacion del render, game loop, memoria
-
-            ### Paso 4: Redactar el Comentario de Diagnostico
-            Tu respuesta sera publicada como comentario en el issue. Usa EXACTAMENTE este formato:
-
-            <!-- claude-issue-triage -->
-            ## Triaje Automatico
-
-            ### Clasificacion
-            | Categoria | Valor | Justificacion |
-            |-----------|-------|---------------|
-            | **Tipo** | [tipo] | [por que] |
-            | **Prioridad** | [nivel] | [por que] |
-            | **Complejidad** | [nivel] | [por que] |
-            | **Area(s)** | [areas] | [por que] |
-
-            ### Analisis del Codigo Afectado
-            [Describe que archivos y funciones especificas estan relacionadas con este issue. Se concreto: menciona nombres de funciones, numeros de linea aproximados, variables relevantes. Explica como funciona actualmente el codigo en esa area.]
-
-            ### Enfoque Sugerido para la Solucion
-            [Describe paso a paso como se podria implementar la correccion o mejora. Si es un bug, sugiere donde buscar la causa raiz. Si es una mejora, sugiere la arquitectura y los cambios necesarios en cada archivo.]
-
-            ### Estimacion de Esfuerzo
-            - **Archivos a modificar:** [lista]
-            - **Funciones afectadas:** [lista]
-            - **Riesgo de regresion:** [bajo, medio o alto - y por que]
-            - **Lineas estimadas:** [aproximado]
-
-            ---
-            *Este triaje fue generado automaticamente por Claude. Si la clasificacion no es correcta, ajusta las etiquetas manualmente.*
-
-            ## Manejo de Casos Especiales
-
-            Aplica estas reglas segun el contenido del issue:
-
-            1. **Issue vacio o sin detalles**: Si el titulo o cuerpo carecen de informacion suficiente, clasifica con lo que puedas inferir del titulo, asigna `priority: low`, y anade una seccion extra al comentario titulada "### Informacion Adicional Necesaria" pidiendo al autor que proporcione mas detalles (pasos para reproducir, comportamiento esperado vs actual, navegador y SO, etc.).
-
-            2. **Spam o contenido irrelevante**: Si el issue claramente no esta relacionado con el proyecto Tetris (publicidad, contenido sin sentido, etc.), NO agregues etiquetas de prioridad, complejidad o area. Solo indica educadamente en el comentario que el issue no parece estar relacionado con el proyecto.
-
-            3. **Issue muy vago**: Haz tu mejor esfuerzo para clasificar basandote en palabras clave, pero indica explicitamente en el analisis que informacion adicional seria util para un diagnostico mas preciso.
-
-            4. **Issue en otro idioma**: Comprende el contenido en el idioma original pero responde siempre en espanol. Menciona brevemente en que idioma estaba el issue original.
-
-            5. **Feature request grande**: Si se solicita algo que requeriria una reestructuracion significativa (por ejemplo, multijugador, modo online), clasifica como `complexity: complex` y sugiere dividir en sub-tareas mas pequenas.
-
-            ## REGLAS IMPORTANTES
-            - SIEMPRE incluye <!-- claude-issue-triage --> como primera linea de tu respuesta.
-            - SIEMPRE responde en espanol, sin importar el idioma del issue.
-            - NO modifiques ningun archivo del repositorio. Solo lee codigo, anade etiquetas y escribe el comentario.
-            - Se conciso pero informativo. No repitas el contenido del issue textualmente.
-            - Cuando analices el codigo, lee los archivos reales del repositorio, no asumas su contenido.
+            Be concise, helpful, and friendly. Do not over-engineer the response.
