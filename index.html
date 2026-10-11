@@ -42,16 +42,46 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
-            <li><kbd>P</kbd> pausa</li>
+            <li><kbd>P</kbd> / <kbd>Esc</kbd> pausa</li>
           </ul>
         </div>
       </aside>
 
       <div id="overlay" class="overlay hidden">
         <div class="overlay-box">
-          <p id="overlay-title">GAME OVER</p>
-          <p id="overlay-score"></p>
-          <button id="restart-btn">Reiniciar</button>
+
+          <!-- Pause menu content -->
+          <div id="pause-content" class="overlay-content hidden">
+            <p class="overlay-heading">PAUSA</p>
+            <button id="resume-btn" class="menu-btn">Reanudar</button>
+            <button id="pause-restart-btn" class="menu-btn">Reiniciar</button>
+            <button id="controls-toggle-btn" class="menu-btn menu-btn--secondary">Ver controles</button>
+            <div id="pause-controls" class="pause-controls hidden">
+              <ul>
+                <li><kbd>&larr;</kbd><kbd>&rarr;</kbd> mover</li>
+                <li><kbd>&uarr;</kbd> rotar</li>
+                <li><kbd>&darr;</kbd> bajar</li>
+                <li><kbd>Space</kbd> ca&iacute;da</li>
+                <li><kbd>P</kbd> / <kbd>Esc</kbd> pausa</li>
+              </ul>
+            </div>
+            <div class="level-selector">
+              <span class="level-label">Nivel inicial</span>
+              <div class="level-picker">
+                <button id="level-down" class="level-btn" type="button">&minus;</button>
+                <span id="start-level-display">1</span>
+                <button id="level-up" class="level-btn" type="button">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game over content -->
+          <div id="gameover-content" class="overlay-content hidden">
+            <p id="overlay-title" class="overlay-heading overlay-heading--danger">GAME OVER</p>
+            <p id="overlay-score"></p>
+            <button id="restart-btn" class="menu-btn">Reiniciar</button>
+          </div>
+
         </div>
       </div>
     </div>
