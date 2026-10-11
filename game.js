@@ -169,7 +169,7 @@ function drawBlock(context, x, y, colorIndex, size, alpha) {
 }
 
 function drawGrid() {
-  ctx.strokeStyle = '#22222e';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -301,4 +301,22 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
+// ---- Tema claro/oscuro (por defecto oscuro) ----
+const themeBtn = document.getElementById('theme-toggle');
+const themeLabel = document.getElementById('theme-label');
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem('theme', theme);
+  themeBtn.setAttribute('aria-checked', theme === 'light');
+  themeLabel.textContent = theme === 'light' ? 'CLARO' : 'OSCURO';
+  if (current) draw();
+}
+
+themeBtn.addEventListener('click', () => {
+  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+  themeBtn.blur();
+});
+
 init();
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
