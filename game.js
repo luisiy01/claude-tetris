@@ -19,10 +19,8 @@ const COLORS = [
 // ---- Skin system ----
 const SKINS = {
   retro: {
-    name: 'Retro',
     colors: COLORS,
     drawBlock(context, x, y, colorIndex, size, alpha) {
-      if (!colorIndex) return;
       const color = this.colors[colorIndex];
       context.globalAlpha = alpha ?? 1;
       context.fillStyle = color;
@@ -33,7 +31,6 @@ const SKINS = {
     }
   },
   neon: {
-    name: 'Neon',
     colors: [
       null,
       '#00ffff', // I - bright cyan
@@ -46,19 +43,22 @@ const SKINS = {
       '#cccccc', // Nut - bright silver
     ],
     drawBlock(context, x, y, colorIndex, size, alpha) {
-      if (!colorIndex) return;
       const color = this.colors[colorIndex];
-      context.globalAlpha = alpha ?? 1;
-      context.shadowBlur = 15;
-      context.shadowColor = color;
+      const effectiveAlpha = alpha ?? 1;
+      context.globalAlpha = effectiveAlpha;
+      // Only apply glow for solid pieces, skip ghost (alpha < 1)
+      if (effectiveAlpha >= 1) {
+        context.shadowBlur = 15;
+        context.shadowColor = color;
+      }
       context.fillStyle = color;
       context.fillRect(x * size + 2, y * size + 2, size - 4, size - 4);
       context.shadowBlur = 0;
+      context.shadowColor = 'transparent';
       context.globalAlpha = 1;
     }
   },
   pastel: {
-    name: 'Pastel',
     colors: [
       null,
       '#a8d8ea', // I - soft cyan
@@ -71,7 +71,6 @@ const SKINS = {
       '#cfd8dc', // Nut - soft gray
     ],
     drawBlock(context, x, y, colorIndex, size, alpha) {
-      if (!colorIndex) return;
       const color = this.colors[colorIndex];
       const px = x * size + 2;
       const py = y * size + 2;
@@ -111,10 +110,8 @@ const SKINS = {
     }
   },
   pixel: {
-    name: 'Pixel Art',
     colors: COLORS,
     drawBlock(context, x, y, colorIndex, size, alpha) {
-      if (!colorIndex) return;
       const color = this.colors[colorIndex];
       const px = x * size + 1;
       const py = y * size + 1;
@@ -466,6 +463,7 @@ skinSelect.addEventListener('change', () => {
 });
 
 // ---- Startup ----
-init();
-applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+// Apply skin and theme state before init so the first frame uses the right settings
 applySkin(localStorage.getItem('tetris-skin') || 'retro');
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+init();
