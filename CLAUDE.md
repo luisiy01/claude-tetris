@@ -23,13 +23,14 @@ Three files, tightly coupled:
 
 - **`index.html`** — DOM structure with two `<canvas>` elements (board 300x600, next-piece preview 120x120), side panel (score/lines/level/controls), and game-over/pause overlay.
 - **`style.css`** — CSS custom properties on `:root` for theming. Dark theme is default; light theme via `[data-theme='light']`. Theme persisted in `localStorage`.
-- **`game.js`** — All game logic in one file (~325 lines). Key parts:
+- **`game.js`** — All game logic in one file (~370 lines). Key parts:
   - Board is a `ROWS(20) × COLS(10)` matrix of color indices (0 = empty, 1-8 = piece type)
   - 8 piece types: standard 7 (I/O/T/S/Z/J/L) plus a custom "Nut" piece (index 8, 3x3 ring shape)
   - Game loop via `requestAnimationFrame`, gravity driven by `dropAccum` vs `dropInterval`
   - Wall kicks on rotation: tries offsets `[0, -1, 1, -2, 2]`
   - Ghost piece rendered at `globalAlpha = 0.2`
-  - Scoring: `[0, 100, 300, 500, 800] × level`; level increments every 10 lines; speed = `max(100, 1000 - (level-1)*90)` ms
+  - Scoring: `[0, 100, 300, 500, 800] × level`; level increments every 10 lines (but never below `startLevel`); speed = `calcDropInterval(level)` = `max(100, 1000 - (level-1)*90)` ms
+  - Pause menu with resume, restart, controls toggle, and starting level selector (1-10). `startLevel` is frozen into `initialLevel` at `init()` time so mid-game changes only affect the next game
 
 ## Key Constraints
 

@@ -38,11 +38,25 @@ const scoreEl = document.getElementById('score');
 const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
 const overlay = document.getElementById('overlay');
-const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
+const pauseContent = document.getElementById('pause-content');
+const gameoverContent = document.getElementById('gameover-content');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const controlsToggleBtn = document.getElementById('controls-toggle-btn');
+const pauseControls = document.getElementById('pause-controls');
+const levelUpBtn = document.getElementById('level-up');
+const levelDownBtn = document.getElementById('level-down');
+const startLevelDisplay = document.getElementById('start-level-display');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let startLevel = 1;
+let initialLevel = 1;
+
+function calcDropInterval(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
+}
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -108,8 +122,8 @@ function clearLines() {
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = Math.max(initialLevel, Math.floor(lines / 10) + 1);
+    dropInterval = calcDropInterval(level);
     updateHUD();
   }
 }
@@ -223,7 +237,8 @@ function drawNext() {
 function endGame() {
   gameOver = true;
   cancelAnimationFrame(animId);
-  overlayTitle.textContent = 'GAME OVER';
+  pauseContent.classList.add('hidden');
+  gameoverContent.classList.remove('hidden');
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
 }
@@ -232,12 +247,14 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    overlay.classList.add('hidden');
+    pauseControls.classList.add('hidden');
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
+    gameoverContent.classList.add('hidden');
+    pauseContent.classList.remove('hidden');
     overlay.classList.remove('hidden');
   }
 }
@@ -263,22 +280,26 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  initialLevel = startLevel;
+  level = initialLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = calcDropInterval(initialLevel);
   dropAccum = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
+  pauseContent.classList.add('hidden');
+  gameoverContent.classList.add('hidden');
+  pauseControls.classList.add('hidden');
   overlay.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
@@ -303,6 +324,28 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+// ---- Pause menu buttons ----
+resumeBtn.addEventListener('click', () => { if (paused) togglePause(); });
+pauseRestartBtn.addEventListener('click', init);
+
+controlsToggleBtn.addEventListener('click', () => {
+  pauseControls.classList.toggle('hidden');
+});
+
+levelUpBtn.addEventListener('click', () => {
+  if (startLevel < 10) {
+    startLevel++;
+    startLevelDisplay.textContent = startLevel;
+  }
+});
+
+levelDownBtn.addEventListener('click', () => {
+  if (startLevel > 1) {
+    startLevel--;
+    startLevelDisplay.textContent = startLevel;
+  }
+});
 
 // ---- Tema claro/oscuro (por defecto oscuro) ----
 const themeBtn = document.getElementById('theme-toggle');
