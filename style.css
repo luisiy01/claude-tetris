@@ -238,3 +238,140 @@ kbd {
 :root[data-theme='light'] .theme-toggle .switch::after {
   transform: translateX(18px);
 }
+
+/* ---- High Scores ---- */
+.name-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.name-input-section.hidden {
+  display: none;
+}
+
+.name-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.name-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.name-row input {
+  width: 130px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: 'Courier New', Courier, monospace;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--board-bg);
+  color: var(--text);
+  outline: none;
+}
+
+.name-row input:focus {
+  border-color: var(--accent);
+}
+
+#save-score-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#save-score-btn:hover {
+  background: var(--accent-hover);
+}
+
+.scores-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.scores-table-container.hidden {
+  display: none;
+}
+
+.scores-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--label);
+  font-weight: 600;
+}
+
+.scores-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  width: 100%;
+  max-width: 380px;
+}
+
+.scores-table th {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--label);
+  font-weight: 600;
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scores-table td {
+  padding: 4px 8px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.scores-table th:first-child,
+.scores-table td:first-child {
+  text-align: center;
+  width: 28px;
+}
+
+.scores-table th:nth-child(3),
+.scores-table td:nth-child(3),
+.scores-table th:nth-child(4),
+.scores-table td:nth-child(4),
+.scores-table th:nth-child(5),
+.scores-table td:nth-child(5) {
+  text-align: right;
+}
+
+.scores-table .highlight {
+  background: rgba(122, 162, 247, 0.18);
+}
+
+:root[data-theme='light'] .scores-table .highlight {
+  background: rgba(61, 95, 196, 0.12);
+}
+
+.clear-scores-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.clear-scores-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
